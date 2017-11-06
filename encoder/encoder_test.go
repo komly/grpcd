@@ -27,10 +27,6 @@ func TestEncodeSimple(t *testing.T) {
 			Number: 1,
 			Val: "150",
 		},
-		{
-			Number: 2,
-			Val: "150",
-		},
 	})
 	if err != nil {
 		t.Fatalf("Encode error: %v", err)
