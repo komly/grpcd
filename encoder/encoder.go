@@ -71,12 +71,17 @@ func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, typeN
 }
 
 func (e *Encoder) encodePackedRepeated(f *fieldInfo, val interface{}) ([]byte, error) {
-	res := proto.EncodeVarint(uint64(f.number << 3 | int32(2)))
 
 	stringSliceVal, ok := val.([]interface{})
 	if !ok {
 		return nil, fmt.Errorf("val should be a slice of interface{}, got: %T", val)
 	}
+
+	if len(stringSliceVal) == 0 {
+		return []byte{}, nil
+	}
+
+	res := proto.EncodeVarint(uint64(f.number << 3 | int32(2)))
 
 	lres := make([]byte, 0)
 	for _, v := range stringSliceVal {
