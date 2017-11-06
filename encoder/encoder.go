@@ -37,7 +37,7 @@ func (e *Encoder) findFieldByNumber(tp *typeInfo, number int32) *fieldInfo {
 }
 
 
-func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, val interface{}) ([]byte, error){
+func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, val interface{}) ([]byte, error) {
 	switch typeId {
 	case descriptor.FieldDescriptorProto_TYPE_INT32:
 		strVal, ok := val.(string)
@@ -54,11 +54,15 @@ func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, val i
 		return nil, errors.New("not implemented")
 	}
 }
+
 func (e *Encoder) Encode(typeName string, fields []*Field) ([]byte, error) {
 	tp, ok := e.types[typeName]
 	if !ok {
 		return nil, fmt.Errorf("no such type: %v", typeName)
 	}
+
+	res := make([]byte, 0)
+
 	for _, f := range fields {
 		tf := e.findFieldByNumber(tp, f.Number)
 		if tf == nil {
@@ -70,17 +74,19 @@ func (e *Encoder) Encode(typeName string, fields []*Field) ([]byte, error) {
 			return nil, err
 		}
 
-		prefix := byte(tf.number) << 3 | wireType //TODO: big field number
 
 		bytes, err := e.encodeField(tf.typeId, f.Val)
 		if err != nil {
 			return nil, fmt.Errorf("encode field %v error: %v", tf.name, err)
 		}
-		return append([]byte{prefix}, bytes...), nil
+
+		prefix := proto.EncodeVarint(uint64(tf.number << 3 | int32(wireType)))
+
+		res =  append(res, prefix...)
+		res =  append(res, bytes...)
 	}
 
-	return nil, fmt.Errorf("not implemented")
-
+	return res, nil
 }
 
 func wireByType(typeId descriptor.FieldDescriptorProto_Type) (uint8, error) {
