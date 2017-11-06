@@ -25,6 +25,7 @@ type fieldInfo struct {
 	name string
 	number int32
 	typeId  descriptor.FieldDescriptorProto_Type
+	typeName string
 	repeated bool
 }
 
@@ -38,7 +39,7 @@ func (e *Encoder) findFieldByNumber(tp *typeInfo, number int32) *fieldInfo {
 }
 
 
-func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, repeated bool, val interface{}) ([]byte, error) {
+func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, typeName string, repeated bool, val interface{}) ([]byte, error) {
 	if repeated {
 		stringSliceVal, ok := val.([]string)
 		if !ok {
@@ -46,7 +47,7 @@ func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, repea
 		}
 		res := make([]byte, 0)
 		for _, v := range stringSliceVal {
-			fieldData, err := e.encodeField(typeId, false, v)
+			fieldData, err := e.encodeField(typeId, typeName, false, v)
 			if err != nil {
 				return nil, err
 			}
@@ -68,6 +69,20 @@ func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, repea
 			return nil, err
 		}
 		return proto.EncodeVarint(uint64(valInt32)), nil
+	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
+		fieldsVal, ok := val.([]*Field)
+		if !ok {
+			return nil, fmt.Errorf("val should be a `[]*Field`, got: %T", val)
+		}
+		data, err :=  e.Encode(typeName, fieldsVal)
+		if err != nil {
+			return nil, err
+		}
+
+		data = append(proto.EncodeVarint(uint64(len(data))), data...) // ???
+
+		return data, nil
+
 	default:
 		return nil, errors.New("not implemented")
 	}
@@ -93,9 +108,9 @@ func (e *Encoder) Encode(typeName string, fields []*Field) ([]byte, error) {
 		}
 
 
-		bytes, err := e.encodeField(tf.typeId, tf.repeated, f.Val)
+		bytes, err := e.encodeField(tf.typeId, tf.typeName, tf.repeated, f.Val)
 		if err != nil {
-			return nil, fmt.Errorf("encode field %v error: %v", tf.name, err)
+			return nil, fmt.Errorf("encode field `%v` error: %v", tf.name, err)
 		}
 
 		prefix := proto.EncodeVarint(uint64(tf.number << 3 | int32(wireType)))
@@ -114,6 +129,8 @@ func wireByType(typeId descriptor.FieldDescriptorProto_Type, repeated bool) (uin
 	switch typeId {
 	case descriptor.FieldDescriptorProto_TYPE_INT32:
 		return 0, nil
+	case descriptor.FieldDescriptorProto_TYPE_MESSAGE:
+		return 2, nil
 	default:
 		return 0, fmt.Errorf("wire type for %v does not implemented", typeId)
 	}

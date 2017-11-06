@@ -10,3 +10,11 @@ message TestMessage {
 message TestMessageWithRepeated {
     repeated int32 a = 1;
 };
+
+message InnerMessage {
+  int32 a = 1;
+};
+
+message TestMessageWithInner {
+    InnerMessage inner = 1;
+}

@@ -126,3 +126,59 @@ func TestEncodeRepeatedField(t *testing.T) {
 		t.Fatalf("bytes does not equal, expected: %+v, got: %+v", pData, data)
 	}
 }
+
+
+func TestEncodeInnerStruct(t *testing.T) {
+	e := Encoder{
+		types: map[string]*typeInfo{
+			".Inner": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_INT32,
+					},
+
+				},
+			},
+			".TestMessage": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_MESSAGE,
+						typeName: ".Inner",
+					},
+
+				},
+			},
+		},
+	}
+	data, err := e.Encode(".TestMessage", []*Field{
+		{
+			Number: 1,
+			Val: []*Field{
+				{
+					Number: 1,
+					Val: "150",
+				},
+			},
+		},
+
+	})
+	if err != nil {
+		t.Fatalf("Encode error: %v", err)
+	}
+
+	m := &fixtures.TestMessageWithInner{
+		Inner: &fixtures.InnerMessage{
+			A: 150,
+		},
+	}
+
+	pData, err := proto.Marshal(m)
+
+	if bytes.Compare(pData, data) != 0 {
+		t.Fatalf("bytes does not equal, expected: %+v, got: %+v", pData, data)
+	}
+}
