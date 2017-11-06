@@ -25,6 +25,7 @@ type fieldInfo struct {
 	name string
 	number int32
 	typeId  descriptor.FieldDescriptorProto_Type
+	repeated bool
 }
 
 func (e *Encoder) findFieldByNumber(tp *typeInfo, number int32) *fieldInfo {
@@ -37,7 +38,24 @@ func (e *Encoder) findFieldByNumber(tp *typeInfo, number int32) *fieldInfo {
 }
 
 
-func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, val interface{}) ([]byte, error) {
+func (e *Encoder) encodeField(typeId descriptor.FieldDescriptorProto_Type, repeated bool, val interface{}) ([]byte, error) {
+	if repeated {
+		stringSliceVal, ok := val.([]string)
+		if !ok {
+			return nil, fmt.Errorf("val should be a slice of strings, got: %T", val)
+		}
+		res := make([]byte, 0)
+		for _, v := range stringSliceVal {
+			fieldData, err := e.encodeField(typeId, false, v)
+			if err != nil {
+				return nil, err
+			}
+			res = append(res, fieldData...)
+		}
+		res = append(proto.EncodeVarint(uint64(len(res))), res...)
+
+		return res, nil
+	}
 	switch typeId {
 	case descriptor.FieldDescriptorProto_TYPE_INT32:
 		strVal, ok := val.(string)
@@ -69,13 +87,13 @@ func (e *Encoder) Encode(typeName string, fields []*Field) ([]byte, error) {
 			return nil, fmt.Errorf("no field with number: %v", f.Number)
 		}
 
-		wireType, err := wireByType(tf.typeId)
+		wireType, err := wireByType(tf.typeId, tf.repeated)
 		if err != nil {
 			return nil, err
 		}
 
 
-		bytes, err := e.encodeField(tf.typeId, f.Val)
+		bytes, err := e.encodeField(tf.typeId, tf.repeated, f.Val)
 		if err != nil {
 			return nil, fmt.Errorf("encode field %v error: %v", tf.name, err)
 		}
@@ -89,7 +107,10 @@ func (e *Encoder) Encode(typeName string, fields []*Field) ([]byte, error) {
 	return res, nil
 }
 
-func wireByType(typeId descriptor.FieldDescriptorProto_Type) (uint8, error) {
+func wireByType(typeId descriptor.FieldDescriptorProto_Type, repeated bool) (uint8, error) {
+	if repeated {
+		return 2, nil
+	}
 	switch typeId {
 	case descriptor.FieldDescriptorProto_TYPE_INT32:
 		return 0, nil

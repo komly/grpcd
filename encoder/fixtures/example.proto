@@ -6,3 +6,7 @@ message TestMessage {
     int32 a = 1;
     int32 b = 2;
 };
+
+message TestMessageWithRepeated {
+    repeated int32 a = 1;
+};
