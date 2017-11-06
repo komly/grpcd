@@ -18,3 +18,7 @@ message InnerMessage {
 message TestMessageWithInner {
     InnerMessage inner = 1;
 }
+
+message TestRepeatedInner {
+    repeated InnerMessage inner = 1;
+};

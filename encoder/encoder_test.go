@@ -104,7 +104,7 @@ func TestEncodeRepeatedField(t *testing.T) {
 	data, err := e.Encode(".TestMessage", []*Field{
 		{
 			Number: 1,
-			Val: []string{"1", "2", "3"},
+			Val: []interface{}{"1", "2", "3"},
 		},
 
 	})
@@ -169,6 +169,77 @@ func TestEncodeInnerStruct(t *testing.T) {
 	m := &fixtures.TestMessageWithInner{
 		Inner: &fixtures.InnerMessage{
 			A: 150,
+		},
+	}
+
+	pData, err := proto.Marshal(m)
+
+	if bytes.Compare(pData, data) != 0 {
+		t.Fatalf("bytes does not equal, expected: %+v, got: %+v", pData, data)
+	}
+}
+
+func TestEncodeRepeatedInnerStruct(t *testing.T) {
+	e := Encoder{
+		types: map[string]*typeInfo{
+			".Inner": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_INT32,
+					},
+
+				},
+			},
+			".TestMessage": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_MESSAGE,
+						typeName: ".Inner",
+						repeated: true,
+					},
+
+				},
+			},
+		},
+	}
+	var val []interface{}
+
+	msg1 := []*Field{
+		{
+			Number: 1,
+			Val:    "1",
+		},
+	}
+	msg2 := []*Field{
+		{
+			Number: 1,
+			Val:    "1",
+		},
+	}
+	val = append(val, msg1, msg2)
+
+	data, err := e.Encode(".TestMessage", []*Field{
+		{
+			Number: 1,
+			Val:    val,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Encode error: %v", err)
+	}
+
+	m := &fixtures.TestRepeatedInner{
+		Inner: []*fixtures.InnerMessage{
+			{
+				A: 1,
+			},
+			{
+				A: 1,
+			},
 		},
 	}
 
