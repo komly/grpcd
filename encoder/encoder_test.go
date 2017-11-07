@@ -316,6 +316,12 @@ func TestJSONDecode(t *testing.T) {
 						typeId: descriptor.FieldDescriptorProto_TYPE_MESSAGE,
 						typeName: ".Inner",
 					},
+					{
+						name: "third",
+						number: 3,
+						typeId: descriptor.FieldDescriptorProto_TYPE_INT32,
+						repeated: true,
+					},
 
 				},
 			},
@@ -336,6 +342,10 @@ func TestJSONDecode(t *testing.T) {
 						"val": "1"
 					}
 				]
+			},
+			{
+				"number": 3,
+				"val": ["1", "2", "3"]
 			}
 		]
 	`

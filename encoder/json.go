@@ -27,6 +27,7 @@ func expand(in []anyField) ([]*Field, error) {
 	res := make([]*Field, 0)
 
 	var str string
+	var sliceStr []string
 	var slice []anyField
 	for _, f := range in {
 		if err := json.Unmarshal(f.Val, &str); err == nil {
@@ -36,6 +37,18 @@ func expand(in []anyField) ([]*Field, error) {
 			})
 			continue
 		}
+		if err := json.Unmarshal(f.Val, &sliceStr); err == nil {
+			val := make([]interface{}, 0)
+			for _, v := range sliceStr {
+				val = append(val, v)
+			}
+			res = append(res, &Field{
+				Number: f.Number,
+				Val: val,
+			})
+			continue
+		}
+
 		if err := json.Unmarshal(f.Val, &slice); err == nil {
 			val, err := expand(slice)
 			if err != nil {
