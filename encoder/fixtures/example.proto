@@ -22,3 +22,7 @@ message TestMessageWithInner {
 message TestRepeatedInner {
     repeated InnerMessage inner = 1;
 };
+
+service TestService {
+  rpc TestMethod(TestMessage) returns (TestMessage);
+};
