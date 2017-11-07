@@ -6,6 +6,7 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/komly/grpcd/encoder/fixtures"
 	 "github.com/golang/protobuf/proto"
+	"log"
 )
 
 func TestEncodeSimple(t *testing.T) {
@@ -287,4 +288,66 @@ func TestEncodeRepeatedInnerStruct(t *testing.T) {
 	if bytes.Compare(pData, data) != 0 {
 		t.Fatalf("bytes does not equal, expected: %+v, got: %+v", pData, data)
 	}
+}
+
+func TestJSONDecode(t *testing.T) {
+	e := Encoder{
+		types: map[string]*typeInfo{
+			".Inner": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_INT32,
+					},
+
+				},
+			},
+			".TestMessage": {
+				fields: []*fieldInfo{
+					{
+						name: "first",
+						number: 1,
+						typeId: descriptor.FieldDescriptorProto_TYPE_INT32,
+					},
+					{
+						name: "second",
+						number: 2,
+						typeId: descriptor.FieldDescriptorProto_TYPE_MESSAGE,
+						typeName: ".Inner",
+					},
+
+				},
+			},
+		},
+	}
+
+	msg := `
+		[
+			{
+				"number": 1,
+				"val": "150"
+			},
+			{
+				"number": 2,
+				"val": [
+					{
+						"number": 1,
+						"val": "1"
+					}
+				]
+			}
+		]
+	`
+
+
+	fields, err := FromJSON([]byte(msg))
+
+	data, err := e.Encode(".TestMessage", fields)
+	if err != nil {
+		t.Fatal(err)
+
+	}
+	log.Printf("%+v", data)
+
 }
